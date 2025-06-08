@@ -12,7 +12,7 @@ public class ControlCentre {
 		City city = arena.getCity();
 		Coordinates[] itemCoordinates = arena.getListofItems();
 
-		int numThings = 5;
+		int numThings = 6;
 		int numPlayers = 2;
 
 		GameRobot[] robots = new GameRobot[numPlayers];
