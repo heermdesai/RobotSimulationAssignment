@@ -13,14 +13,14 @@ public class ControlCentre {
 		Coordinates[] itemCoordinates = arena.getListofItems();
 
 		int numThings = 5;
-		int numPlayers = 3;
+		int numPlayers = 2;
 
 		GameRobot[] robots = new GameRobot[numPlayers];
 		// robots[0]=new medicRobot(city, 5, 10,Direction.EAST, arena, 100,
 		// 20,"medic",10,0);
 		robots[0] = new CrewRobot(city, 8, 10, Direction.EAST, arena, 20, 2, "crew", 10, 0);
 		robots[1] = new CrewRobot(city, 2, 5, Direction.NORTH, arena, 79, 7, "crew", 5, 0);
-		robots[2] = new killerBot(city, 0, 0, Direction.NORTH, arena, 79, 7, "killer", 0, 10);
+		//robots[2] = new killerBot(city, 0, 0, Direction.NORTH, arena, 79, 7, "killer", 0, 10);
 		// robots[2]=new KillerBot(city, 6, 12,Direction.EAST, arena, 100,
 		// 20,"killer",10,0);
 
