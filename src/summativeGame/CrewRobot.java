@@ -14,6 +14,11 @@ public class CrewRobot extends GameRobot {
 	private int killerIndex;
 	private Coordinates currentTarget;
 
+	private ArrayList<Coordinates> recentPositions = new ArrayList<Coordinates>();
+	private int estimatedCatchAbility = 50;
+	private int totalEncounters = 0;
+	private int successfulDodges = 0;
+
 	public CrewRobot(City c, int street, int avenue, Direction d, Arena arena, int energy, int speed, String type,
 			int dodgingAbility, int catchAbility) {
 		super(c, street, avenue, d, arena, energy, speed, type, dodgingAbility, catchAbility);
@@ -23,8 +28,20 @@ public class CrewRobot extends GameRobot {
 		this.arena = arena;
 	}
 
+	public void move() {
+		// System.out.println(this.getName() + " moving to (" + this.getStreet() + ", "
+		// + this.getAvenue() + ")");
+
+		if (this.getEnergy() <= 0) {
+			return;
+		}
+		super.move();
+		this.setEnergy(this.getEnergy() - 1);
+	}
+
 	public GameRobot[] moveTurn(GameRobot[] robots, int i, Coordinates[] itemCoordinates) {
-		//System.out.println(this.getName() + " has " + this.getEnergy() + " energy left.");
+		// System.out.println(this.getName() + " has " + this.getEnergy() + " energy
+		// left.");
 		this.itemCoordinates = itemCoordinates;
 		this.playersInfo = robots;
 
@@ -38,14 +55,14 @@ public class CrewRobot extends GameRobot {
 
 		if (this.getEnergy() <= 0) {
 			this.setEnergy(this.getEnergy() + 90);
-		} else if (this.getEnergy() >= 50) {
-			//System.out.println("taking offensive stretegy.");
+		} else if (this.getEnergy() >= 20) {
+			// System.out.println("taking offensive stretegy.");
 			this.offensiveStrategy(itemCoordinates, this.playersInfo, arena.getCorners());
-			//System.out.println("took offensive stretegy.");
+			// System.out.println("took offensive stretegy.");
 		} else {
-			//System.out.println("taking defensive stretegy.");
-			this.defensiveStrategy(arena, this.playersInfo);
-			//System.out.println("took defensive stretegy.");
+			// System.out.println("taking defensive stretegy.");
+			this.defensiveStrategy(arena, this.playersInfo, arena.getCorners());
+			// System.out.println("took defensive stretegy.");
 		}
 
 		this.playersInfo[i].setAvenue(this.getAvenue());
@@ -58,10 +75,10 @@ public class CrewRobot extends GameRobot {
 	private void offensiveStrategy(Coordinates[] itemCoordinates, GameRobot[] playersInfo, Coordinates[] corners) {
 		Coordinates[] sortedCornersList = findClosestCorner(corners);
 
-		for(int i = 0; i < sortedCornersList.length; i++) {
-			System.out.println(sortedCornersList[i]);
-		}
-		
+//		for (int i = 0; i < sortedCornersList.length; i++) {
+//			System.out.println(sortedCornersList[i]);
+//		}
+
 		if (this.countThingsInBackpack() == 0) {
 			if (currentTarget == null || currentTarget.getIsPicked() == true) {
 				currentTarget = this.findItem(itemCoordinates, playersInfo);
@@ -89,24 +106,24 @@ public class CrewRobot extends GameRobot {
 	}
 
 	public Coordinates[] findClosestCorner(Coordinates[] corners) {
-		Coordinates killerCoord = new Coordinates(playersInfo[killerIndex].getStreet(), playersInfo[killerIndex].getAvenue());
-		
+		Coordinates killerCoord = new Coordinates(playersInfo[killerIndex].getStreet(),
+				playersInfo[killerIndex].getAvenue());
+
 		for (int i = 0; i < corners.length; i++) {
 			int minIndex = i;
-			for (int j = i + 1; j < corners.length; j++) {	
+			for (int j = i + 1; j < corners.length; j++) {
 				int currentKillerDistance = findDistance(killerCoord, corners[j]);
 				int bestKillerDistance = findDistance(corners[minIndex].getAvenue(), corners[minIndex].getStreet());
-				
+
 				if (currentKillerDistance > bestKillerDistance) {
-	                minIndex = j;
-	            } 
-				else if(currentKillerDistance == bestKillerDistance) {
+					minIndex = j;
+				} else if (currentKillerDistance == bestKillerDistance) {
 					int currentSelfDistance = findDistance(corners[j].getAvenue(), corners[j].getStreet());
 					int bestSelfDistance = findDistance(corners[minIndex].getAvenue(), corners[minIndex].getStreet());
-					
+
 					if (currentSelfDistance < bestSelfDistance) {
-	                    minIndex = j;
-	                }
+						minIndex = j;
+					}
 				}
 			}
 			Coordinates temp = corners[i];
@@ -119,25 +136,53 @@ public class CrewRobot extends GameRobot {
 	public void moveTowards(Coordinates target) {
 		int numSteps = this.getRobotSpeed();
 		while (numSteps > 0 && this.getEnergy() > 0) {
+			Coordinates nextSpot;
 			if (this.getAvenue() > target.getAvenue()) {
 				this.faceWest();
-				this.move();
+				nextSpot = new Coordinates(this.getStreet(), this.getAvenue() - 1);
 			} else if (this.getAvenue() < target.getAvenue()) {
 				this.faceEast();
-				this.move();
+				nextSpot = new Coordinates(this.getStreet(), this.getAvenue() + 1);
 			} else if (this.getStreet() > target.getStreet()) {
 				this.faceNorth();
-				this.move();
+				nextSpot = new Coordinates(this.getStreet() - 1, this.getAvenue());
 			} else if (this.getStreet() < target.getStreet()) {
 				this.faceSouth();
-				this.move();
+				nextSpot = new Coordinates(this.getStreet() + 1, this.getAvenue());
 			} else {
 				break;
 			}
+
+			if (recentPositions.contains(nextSpot)) {
+				break;
+			}
+
+			this.move();
 			numSteps--;
+
+			recentPositions.add(new Coordinates(this.getStreet(), this.getAvenue()));
+			if (recentPositions.size() > 3) {
+				recentPositions.remove(0);
+			}
 		}
 
 	}
+
+//	        // Only move if this isn't a loop move
+//	        if (recentPositions.contains(nextPosition)) {
+//	            break;
+//	        }
+//
+//	        this.move();
+//	        numSteps--;
+//
+//	        // Update move history
+//	        recentPositions.add(new Coordinates(this.getStreet(), this.getAvenue()));
+//	        if (recentPositions.size() > 3) {
+//	            recentPositions.remove(0);  // keep recent 3 moves
+//	        }
+//	    }
+//	}
 
 	// ADD FUNCTIONALITY TO CHECK WHERE OTHER PLAYERS ARE
 	private Coordinates findItem(Coordinates[] itemCoordinates, GameRobot[] playersInfo) {
@@ -196,35 +241,96 @@ public class CrewRobot extends GameRobot {
 		}
 	}
 
+	public boolean tryToDodge() {
+		int chance = (int) (Math.random() * 100);
+		return (this.dodgingAbility + chance) >= 50;
+	}
+
+	public void recordGotFrozen(boolean escaped) {
+		totalEncounters++;
+		if (escaped == true) {
+			successfulDodges++;
+		}
+
+		estimatedCatchAbility = 100 - (int) (((double) successfulDodges / totalEncounters) * 100);
+		System.out.println("estimated catchability = " + estimatedCatchAbility);
+	}
+
 	private void goToCorner(Coordinates[] cornersList) {
 		Coordinates[] sortedCornersList = cornersList;
 		Coordinates closestCorner = sortedCornersList[0];
 		this.moveTowards(closestCorner);
 	}
 
-	private void defensiveStrategy(Arena arena, GameRobot[] playersInfo) {
-		Coordinates safeSpot = this.findSafeSpot(arena, playersInfo);
-		this.moveTowards(safeSpot);
+	private void defensiveStrategy(Arena arena, GameRobot[] playersInfo, Coordinates[] corners) {
+		Coordinates killerCoord = new Coordinates(playersInfo[killerIndex].getStreet(),
+				playersInfo[killerIndex].getAvenue());
+		Coordinates currentCoord = new Coordinates(this.getStreet(), this.getAvenue());
+
+		// ArrayList<Coordinates> openSpots = this.getEmptySpots(arena, playersInfo);
+
+		if (estimatedCatchAbility > 60 && findDistance(killerCoord, currentCoord) <= 4) {
+			Coordinates farthestSpot = this.findFarthestSpot(arena, playersInfo);
+			this.moveTowards(farthestSpot);
+		} else {
+			this.offensiveStrategy(itemCoordinates, playersInfo, corners);
+//            Coordinates safeSpot = this.findSafeSpot(arena, playersInfo);
+//            this.moveTowards(safeSpot);
+		}
 	}
 
 	private Coordinates findSafeSpot(Arena arena, GameRobot[] playersInfo) {
 		GameRobot killer = playersInfo[killerIndex];
 		Coordinates killerPosition = new Coordinates(killer.getStreet(), killer.getAvenue());
+		Coordinates currentPosition = new Coordinates(this.getStreet(), this.getAvenue());
 
 		ArrayList<Coordinates> openSpots = this.getEmptySpots(arena, playersInfo);
+		ArrayList<Coordinates> reachableSpots = new ArrayList<Coordinates>();
 
-		for (int i = 1; i < openSpots.size(); i++) {
-			Coordinates spot = openSpots.get(i);
+		for (int i = 0; i < reachableSpots.size(); i++) {
+			Coordinates openSpot = reachableSpots.get(i);
+			int distance = findDistance(currentPosition, openSpot);
+			if (distance <= this.getSpeed()) {
+				reachableSpots.add(openSpot);
+			}
+		}
+
+		for (int i = 1; i < reachableSpots.size(); i++) {
+			Coordinates spot = reachableSpots.get(i);
 			int distanceToSpot = findDistance(spot, killerPosition);
 			int j = i - 1;
 
-			while (j >= 0 && (findDistance(openSpots.get(j), killerPosition)) < distanceToSpot) {
-				openSpots.set(j + 1, openSpots.get(j));
+			while (j >= 0 && (findDistance(reachableSpots.get(j), killerPosition)) < distanceToSpot) {
+				reachableSpots.set(j + 1, openSpots.get(j));
 				j--;
 			}
-			openSpots.set(j + 1, spot);
+			reachableSpots.set(j + 1, spot);
 		}
 
+		if (reachableSpots.size() > 0) {
+			return reachableSpots.get(0);
+		} else {
+			return null;
+		}
+	}
+
+	private Coordinates findFarthestSpot(Arena arena, GameRobot[] playersInfo) {
+		GameRobot killer = playersInfo[killerIndex];
+		Coordinates killerPosition = new Coordinates(killer.getStreet(), killer.getAvenue());
+
+		ArrayList<Coordinates> openSpots = this.getEmptySpots(arena, playersInfo);
+
+		for (int i = 0; i < openSpots.size() - 1; i++) {
+			for (int j = 0; j < openSpots.size() - i - 1; j++) {
+				int currentDistance = findDistance(openSpots.get(j), killerPosition);
+				int nextDistance = findDistance(openSpots.get(j + 1), killerPosition);
+				if (currentDistance < nextDistance) {
+					Coordinates temp = openSpots.get(j);
+					openSpots.set(j, openSpots.get(j + 1));
+					openSpots.set(j + 1, temp);
+				}
+			}
+		}
 		if (openSpots.size() > 0) {
 			return openSpots.get(0);
 		} else {
