@@ -19,8 +19,9 @@ public class MedicRobot extends GameRobot{
 		int energy=robots[index].getEnergy();
 		double speed = robots[index].getSpeed(); // check why double
 
-		int steps=determineSteps(speed,energy);
+		//int steps=determineSteps(speed,energy);
 
+		int steps=5;
 		int[] killerLocation = findKillerLocation(robots);
 		int killerStreet = killerLocation[0];
 		int killerAvenue = killerLocation[1];
@@ -71,7 +72,7 @@ public class MedicRobot extends GameRobot{
 			steps=4;
 		}
 		else if(speed>=80&&speed<=100) {
-			steps=5;
+			steps=7;
 		}
 
 		if(energy<50) {
@@ -481,7 +482,7 @@ public class MedicRobot extends GameRobot{
 	
 	private boolean isValidMove(int targetStreet, int targetAvenue) {
 	    // Check bounds of the grid
-	    if (targetStreet < 0 || targetStreet >= 12 || targetAvenue < 0 || targetAvenue >= 23) {
+	    if (targetStreet < 0 || targetStreet >= 12|| targetAvenue < 0 || targetAvenue >= 11) {
 	        return false;
 	    }
 

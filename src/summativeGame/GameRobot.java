@@ -59,11 +59,6 @@ public abstract class GameRobot extends RobotSE {
 	}
 
 	public Coordinates[] getItemInfo() {
-
-		// Handle expection please
-		/*
-		 * if(this.itemInfo.) { Cordinates[] empty = {}; return empty; }
-		 */
 		return this.itemInfo;
 	}
 
