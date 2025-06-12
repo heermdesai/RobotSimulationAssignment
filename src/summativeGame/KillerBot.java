@@ -198,9 +198,6 @@ public class KillerBot extends GameRobot {
 		
 		boolean dodged = false;
 		
-		dodged = target.tryToDodge();             
-        target.recordGotFrozen(dodged);
-        
         if(dodged == true) {
         	 System.out.println(target.getName() + " dodged the freeze!");
              return;

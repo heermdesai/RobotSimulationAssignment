@@ -14,7 +14,7 @@ public class ControlCentre {
 		Coordinates[] itemCoordinates = arena.getListofItems();
 
 		int numThings = 5;
-		int numPlayers = 7;
+		int numPlayers = 5;
 
 		GameRobot[] robots = new GameRobot[numPlayers];
 		
@@ -22,15 +22,15 @@ public class ControlCentre {
 		robots[1] = new CrewRobot(city, 10, 5, Direction.NORTH, arena, 79, 6, "crew", 5, 0);
 		robots[2] = new CrewRobot(city, 3, 4, Direction.NORTH, arena, 79, 7, "crew", 5, 0);
 		robots[3] = new KillerBot(city, 0, 2, Direction.NORTH, arena, 100, 2, "killer", 0, 10);
-		robots[4] = new MedicRobot(city, 11, 1, Direction.NORTH, arena, 79, 100, "medic", 5, 0);
-		robots[5] = new MedicRobot(city, 2, 8, Direction.NORTH, arena, 79, 100, "medic", 5, 0);
-		robots[6] = new CrewRobot(city, 12, 2, Direction.NORTH, arena, 79, 7, "crew", 5, 0);
+//		robots[4] = new MedicRobot(city, 11, 1, Direction.NORTH, arena, 79, 100, "medic", 5, 0);
+//		robots[5] = new MedicRobot(city, 2, 8, Direction.NORTH, arena, 79, 100, "medic", 5, 0);
+		robots[4] = new CrewRobot(city, 12, 2, Direction.NORTH, arena, 79, 7, "crew", 5, 0);
 
 
-		robots[3].setColor(Color.ORANGE);
+//		robots[3].setColor(Color.ORANGE);
 		robots[4].setColor(Color.MAGENTA);
-//		// robots[2]=new KillerBot(city, 6, 12,Direction.EAST, arena, 100,
-		robots[5].setColor(Color.MAGENTA);
+////		// robots[2]=new KillerBot(city, 6, 12,Direction.EAST, arena, 100,
+//		robots[5].setColor(Color.MAGENTA);
 
 		// 20,"killer",10,0);
 
@@ -65,7 +65,14 @@ public class ControlCentre {
 			// Updating record and robots move their turn
 			if (!robots[index].isRobotFrozen()) {
 				robots = robots[index].moveTurn(robots, index, itemCoordinates);
+				// MoveMessage got returned 
+				// check moveMovessage 
+				// if targetRobotId and operation is freeze
+				//  this.freezeRobotById(targetRobotoId)
+				// else operation is heal
+				//   this.unfreezeRobotById(targetRobotId)
 			}
+			
 
 			index++;
 			if (index == robots.length) {

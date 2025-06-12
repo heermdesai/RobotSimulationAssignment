@@ -9,7 +9,7 @@ public class Arena {
 	public static final int WIDTH = 24;
 	private City playArea;
 
-	int numThings = 15;
+	int numThings = 4;
 
 	Coordinates[] itemCoordinates = new Coordinates[numThings];
 
@@ -79,9 +79,9 @@ public class Arena {
 	public Coordinates[] getCorners() {
 		Coordinates[] corners = new Coordinates[4];
 		corners[0] = new Coordinates(0, 0);
-		corners[1] = new Coordinates(0, 23);
-		corners[2] = new Coordinates(12, 0);
-		corners[3] = new Coordinates(12, 23);
+		corners[1] = new Coordinates(0, this.WIDTH - 1);
+		corners[2] = new Coordinates(this.HEIGHT - 1, 0);
+		corners[3] = new Coordinates(this.HEIGHT - 1, this.WIDTH - 1);
 		return corners;
 	}
 	

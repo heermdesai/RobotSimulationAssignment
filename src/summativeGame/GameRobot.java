@@ -13,7 +13,7 @@ public abstract class GameRobot extends RobotSE {
 	private int x;
 	private int y;
 	private String name;
-	private boolean frozen;
+	protected boolean frozen;
 	private Coordinates[] itemInfo;
 	private int catchingAbility;
 
