@@ -9,7 +9,7 @@ public class Arena {
 	public static final int WIDTH = 24;
 	private City playArea;
 
-	int numThings = 4;
+	int numThings = 8;
 
 	Coordinates[] itemCoordinates = new Coordinates[numThings];
 

@@ -1,6 +1,5 @@
 package summativeGame;
 
-import java.util.ArrayList;
 import becker.robots.*;
 import java.util.Random;
 
@@ -9,76 +8,79 @@ public class KillerBot extends GameRobot {
 	private Arena arena;
 	private String type;
 	private int catchChance;
+	private boolean isInitialized = false;
 
 	private Coordinates[] lastPositions;
-	private int[] dodgeMemory;
+	private int[] totalFreezeAttempts;
+	private int[] successfulDodges;
 	private int[] robotSpeeds;
 
-	private GameRobot[] playersinfo;
+	private GameRecord[] playersinfo;
 
 	private Coordinates currentTargetCoordinates;
-	private GameRobot currentTargetRobot;
+	private GameRecord currentTargetRobot;
 
 	private static final int AGGRESSIVE_ETHRESHOLD = 30;
 	private static final int FREEZE_ECOST = 10;
 	private static final int RECHARGE_RATE = 5;
+	private static final int DODGE_ABANDON_THRESHOLD = 3;
 
 	private Random rand;
 
-	public KillerBot(City c, int street, int avenue, Direction d, Arena arena, int energy, int speed, String type,
-			int dodgeChance, int catchChance) {
-		super(c, street, avenue, d, arena, energy, speed, type, dodgeChance, catchChance);
+	public KillerBot(int id, City c, int street, int avenue, Direction d, Arena arena, int energy, int speed, String type, int dodgeChance, int catchChance){
+		super(id, c, street, avenue, d, arena, energy, speed, type, dodgeChance, catchChance);
 
 		this.arena = arena;
 		this.type = "killer";
 		this.catchChance = catchChance;
 
-		this.lastPositions = new Coordinates[0];
-		this.dodgeMemory = new int[0];
-		this.robotSpeeds = new int[0];
+		this.lastPositions = null;
+		this.totalFreezeAttempts = null;
+		this.successfulDodges = null;
+		this.robotSpeeds = null;
 
 		this.rand = new Random();
 	}
 
-	public GameRobot[] moveTurn(GameRobot[] robots, int i, Coordinates[] itemInfo) {
+	public MoveStatus moveTurn(GameRecord[] robots, int i, Coordinates[] itemInfo) {
 
 		this.playersinfo = robots;
 		int currentKillerEnergy = this.getEnergy();
-		int currentKillerSpeed = this.getRobotSpeed();
 
 		initializeTrackingArrays();
-
 		updatingSpeedData();
 
-		GameRobot[] validTargets = getValidTargets();
+		GameRecord[] validTargets = getValidTargets();
 		int validTargetCount = validTargets.length;
 
-		if (currentKillerEnergy >= AGGRESSIVE_ETHRESHOLD && validTargetCount > 0) {
-			aggresiveStrategy(validTargets);
-		} else if (validTargetCount == 0 && currentKillerEnergy >= AGGRESSIVE_ETHRESHOLD) {
+		MoveStatus status = null;
+
+		if(currentKillerEnergy >= AGGRESSIVE_ETHRESHOLD && validTargetCount > 0) {
+			status = aggresiveStrategy(validTargets);
+		}
+		else if(validTargetCount == 0 && currentKillerEnergy >= AGGRESSIVE_ETHRESHOLD) {
 			this.move();
-		} else {
-			defensiveStrategy();
+			status = new MoveStatus(this.getID(), -1, "move");
+		}
+		else {
+			status = defensiveStrategy();
 		}
 
-		robots[i].setAvenue(this.getAvenue());
-		robots[i].setStreet(this.getStreet());
-		robots[i].setEnergy(this.getEnergy());
-		return robots;
+		return status;
 	}
 
 	private void initializeTrackingArrays() {
 
-		boolean isInitialized = false;
-
-		if (!isInitialized) {
+		if(!isInitialized) {
 			lastPositions = new Coordinates[playersinfo.length];
-			dodgeMemory = new int[playersinfo.length];
+			totalFreezeAttempts = new int[playersinfo.length];
+			successfulDodges = new int[playersinfo.length];
 			robotSpeeds = new int[playersinfo.length];
 
-			for (int j = 0; j < playersinfo.length; j++) {
-				lastPositions[j] = new Coordinates(-1, -1);
-				dodgeMemory[j] = 0;
+			for(int j = 0; j <playersinfo.length; j++) {
+				lastPositions[j] = new Coordinates(playersinfo[j].getStreet(), playersinfo[j].getAvenue());
+				totalFreezeAttempts[j] = 0;
+				successfulDodges[j] = 0;
 				robotSpeeds[j] = 0;
 			}
 
@@ -87,28 +89,22 @@ public class KillerBot extends GameRobot {
 	}
 
 	private void updatingSpeedData() {
-		for (int i = 0; i < playersinfo.length; i++) {
-			GameRobot bot = playersinfo[i];
-			if (!bot.getName().equalsIgnoreCase("killer")) {
-				if (lastPositions[i].getAvenue() == -1 && lastPositions[i].getStreet() == -1) {
+		for(int i = 0; i < playersinfo.length; i++) {
+			GameRecord bot = playersinfo[i];
+			if(!bot.getName().equalsIgnoreCase("killer")) {
+				if(lastPositions[i].getAvenue() == -1 && lastPositions[i].getStreet() == -1) {
 					lastPositions[i].setStreet(bot.getStreet());
 					lastPositions[i].setAvenue(bot.getAvenue());
-				} else {
+				}
+				else {
 					Coordinates lastPos = lastPositions[i];
 					int currentX = bot.getAvenue();
 					int currentY = bot.getStreet();
 					int lastX = lastPos.getAvenue();
 					int lastY = lastPos.getStreet();
 
-					int diffX = currentX - lastX;
-					if (diffX < 0) {
-						diffX = diffX * -1;
-					}
-
-					int diffY = currentY - lastY;
-					if (diffY < 0) {
-						diffY = diffY * -1;
-					}
+					int diffX = Math.abs(currentX - lastX);
+					int diffY = Math.abs(currentY - lastY);
 
 					int distanceMoved = diffX + diffY;
 					robotSpeeds[i] = distanceMoved;
@@ -120,70 +116,132 @@ public class KillerBot extends GameRobot {
 		}
 	}
 
-	private GameRobot[] getValidTargets() {
-		GameRobot[] tempValidTargets = new GameRobot[playersinfo.length];
+	private GameRecord[] getValidTargets() {
+		GameRecord[] tempValidTargets = new GameRecord[playersinfo.length];
 		int validTargetCount = 0;
-		for (int i = 0; i < playersinfo.length; i++) {
-			GameRobot bot = playersinfo[i];
-			if (!bot.getName().equalsIgnoreCase("killer") && !bot.isRobotFrozen()) {
+		for(int i = 0; i < playersinfo.length; i++) {
+			GameRecord bot = playersinfo[i];
+			if(!bot.getName().equalsIgnoreCase("killer") && !bot.isRobotFrozen()) {
 				tempValidTargets[validTargetCount] = bot;
 				validTargetCount++;
 			}
 		}
 
-		GameRobot[] validTargets = new GameRobot[validTargetCount];
-		for (int i = 0; i < validTargetCount; i++) {
+		GameRecord[] validTargets = new GameRecord[validTargetCount];
+		for(int i = 0; i < validTargetCount; i++) {
 			validTargets[i] = tempValidTargets[i];
 		}
-
 		return validTargets;
 	}
 
-	private void aggresiveStrategy(GameRobot[] validTargets) {
-		if (validTargets.length == 0) {
+	private MoveStatus aggresiveStrategy(GameRecord[] validTargets) {
+		MoveStatus status = null;
+
+		if(validTargets.length == 0) {
 			this.move();
-			return;
+			return new MoveStatus(this.getID(), -1, "move");
 		}
 
 		currentTargetRobot = sortedtarget(validTargets);
-		if (currentTargetRobot == null) {
+		if(currentTargetRobot == null) {
 			this.move();
-			return;
+			return new MoveStatus(this.getID(), -1, "move");
 		}
 
-		currentTargetCoordinates = new Coordinates(currentTargetRobot.getStreet(), currentTargetRobot.getAvenue());
+		int targetIndex = -1;
+		for (int j = 0; j < playersinfo.length; j++) {
+			if (playersinfo[j] == currentTargetRobot) {
+				targetIndex = j;
+				break;
+			}
+		}
+
+		if (targetIndex != -1 && successfulDodges[targetIndex] >= DODGE_ABANDON_THRESHOLD && totalFreezeAttempts[targetIndex] > 0) {
+			GameRecord[] simplerTargets = getSimplerTargets(validTargets, targetIndex);
+			if (simplerTargets.length > 0) {
+				status = aggresiveStrategy(simplerTargets);
+				return status;
+			}
+		}
+
+		currentTargetCoordinates = new Coordinates(currentTargetRobot.getStreet(),currentTargetRobot.getAvenue());
 
 		moveTo(currentTargetCoordinates, this.getRobotSpeed());
 
-		if (this.getAvenue() == currentTargetRobot.getAvenue() && this.getStreet() == currentTargetRobot.getStreet()) {
-			freezeTarget(currentTargetRobot);
+		if(this.getAvenue() == currentTargetRobot.getAvenue() && this.getStreet() == currentTargetRobot.getStreet()) {
+			status = freezeTarget(currentTargetRobot);
+		} else {
+			status = new MoveStatus(this.getID(), -1, "move");
 		}
+		return status;
 	}
 
-	private void defensiveStrategy() {
+	private GameRecord[] getSimplerTargets(GameRecord[] currentValidTargets, int index) {
+		GameRecord[] tempSimplerTargets = new GameRecord[currentValidTargets.length];
+		int simplerTargetCount = 0;
+
+		for (int i = 0; i < currentValidTargets.length; i++) {
+			GameRecord bot = currentValidTargets[i];
+			int botIndex = -1;
+
+			for (int j = 0; j < playersinfo.length; j++) {
+				if (playersinfo[j] == bot) {
+					botIndex = j;
+					break;
+				}
+			}
+
+			if (botIndex != -1 && botIndex != index && successfulDodges[botIndex] < DODGE_ABANDON_THRESHOLD) {
+				tempSimplerTargets[simplerTargetCount++] = bot;
+			}
+		}
+
+		GameRecord[] simplerTargets = new GameRecord[simplerTargetCount];
+	    for (int i = 0; i < simplerTargetCount; i++) {
+	        simplerTargets[i] = tempSimplerTargets[i];
+	    }
+	    return simplerTargets;
+	}
+
+	private MoveStatus defensiveStrategy() {
+		MoveStatus status = null;
 
 		int currentKillerEnergy = this.getEnergy();
 		currentKillerEnergy += RECHARGE_RATE;
 		this.setEnergy(currentKillerEnergy);
 
 		Coordinates[] corners = arena.getCorners();
+
+		if(corners == null || corners.length == 0) {
+			this.turnRight();
+			return new MoveStatus(this.getID(), -1, "cornerNotFound");
+		}
+
 		Coordinates nearestCorner = findClosetCorner(corners);
 
-		if (this.getAvenue() != nearestCorner.getAvenue() || this.getStreet() != nearestCorner.getStreet()) {
+		if(this.getAvenue() != nearestCorner.getAvenue() || this.getStreet() != nearestCorner.getStreet()) {
 			moveTo(nearestCorner, this.getRobotSpeed());
 			currentTargetCoordinates = nearestCorner;
 			currentTargetRobot = null;
-		} else {
-			GameRobot nearbyBot = findNearbyTarget();
-			if (nearbyBot != null && !nearbyBot.isRobotFrozen() && !nearbyBot.getName().equalsIgnoreCase("killer")) {
-				freezeTarget(nearbyBot);
-			} else {
+			status = new MoveStatus(this.getID(), -1, "moveToCorner");
+		}
+		else {
+			GameRecord nearbyBot = findNearbyTarget();
+			if(nearbyBot != null && !nearbyBot.isRobotFrozen() && !nearbyBot.getName().equalsIgnoreCase("killer")) {
+				status = freezeTarget(nearbyBot);
+			}
+			else {
 				this.turnRight();
+				status = new MoveStatus(this.getID(), -1, "recharge&Turn");
 			}
 		}
+		return status;
 	}
 
-	private void freezeTarget(GameRobot target) {
+	private MoveStatus freezeTarget(GameRecord target) {
+		int targetId = -1;
+		String actionType = "miss";
+
 		int targetIndex = -1;
 		for (int i = 0; i < playersinfo.length; i++) {
 			if (playersinfo[i] == target) {
@@ -191,29 +249,28 @@ public class KillerBot extends GameRobot {
 				break;
 			}
 		}
-
 		if (targetIndex == -1 || target.getName().equalsIgnoreCase("killer")) {
-			return;
+			return new MoveStatus(this.getID(), -1, "invalidTarget");
 		}
-		
-		boolean dodged = false;
-		
-        if(dodged == true) {
-        	 System.out.println(target.getName() + " dodged the freeze!");
-             return;
-        }
 
-		// Catch chance as integer percentage (e.g., 70 means 70%)
-		int catchChancePercent = (int) (this.getCatchChance() * 100); // assuming getCatchChance() returns 0.0-1.0
-		int roll = rand.nextInt(100); // generates 0-99
+		totalFreezeAttempts[targetIndex]++;
 
-		if (roll < catchChancePercent) {
-			target.setIsRobotFrozen(true);
-			this.setEnergy(this.getEnergy() - FREEZE_ECOST);
-			System.out.println("Freeze successful on " + target.getName() + "!");
+		if (rand.nextInt(100) < this.catchChance) {
+			System.out.println("KillerBot froze " + target.getName() + "!");
+			targetId = target.getID();
+			target.SetisRobotFrozen(true);
+
+			int currentKillerEnergy = this.getEnergy();
+			currentKillerEnergy -= FREEZE_ECOST;
+			this.setEnergy(currentKillerEnergy);
+			successfulDodges[targetIndex] = 0;
+			actionType = "freeze";
 		} else {
-			System.out.println("Freeze attempt failed on " + target.getName() + "!");
+			System.out.println("KillerBot attempted to freeze " + target.getName() + " but it avoided!");
+			successfulDodges[targetIndex]++;
 		}
+
+		return new MoveStatus(this.getID(), targetId, actionType);
 	}
 
 	private void moveTo(Coordinates target, int killerSpeed) {
@@ -263,7 +320,7 @@ public class KillerBot extends GameRobot {
 						movedThisTurn = true;
 					} else {
 						turnLeft();
-						if (frontIsClear()) {
+						if(frontIsClear()){
 							move();
 							movedThisTurn = true;
 						}
@@ -276,19 +333,18 @@ public class KillerBot extends GameRobot {
 				break;
 			}
 		}
-
 	}
 
-	private GameRobot sortedtarget(GameRobot[] validTargets) {
+	private GameRecord sortedtarget(GameRecord[] validTargets) {
+
 		if (validTargets.length == 0) {
 			return null;
 		}
-
-		GameRobot bestTarget = null;
-		double lowestScore = 999999.0;
+		GameRecord bestTarget = null;
+		double lowestScore = 99999.0;
 
 		for (int i = 0; i < validTargets.length; i++) {
-			GameRobot bot = validTargets[i];
+			GameRecord bot = validTargets[i];
 
 			int botGlobalIndex = -1;
 			for (int j = 0; j < playersinfo.length; j++) {
@@ -298,33 +354,34 @@ public class KillerBot extends GameRobot {
 				}
 			}
 
-			if (botGlobalIndex == -1) {
-				continue;
-			}
+			if (botGlobalIndex != -1) {
+				int distance = findDistance(bot.getAvenue(), bot.getStreet());
+				int botSpeed = robotSpeeds[botGlobalIndex];
 
-			int distance = findDistance(bot.getAvenue(), bot.getStreet());
+				double observedDodgeProb = 0.0;
+				if (totalFreezeAttempts[botGlobalIndex] > 0) {
+					observedDodgeProb = (double)successfulDodges[botGlobalIndex] / totalFreezeAttempts[botGlobalIndex];
+				}
 
-			int dodges = dodgeMemory[botGlobalIndex];
-			int botSpeed = robotSpeeds[botGlobalIndex];
+				double score = (observedDodgeProb * 10) + (double)botSpeed / 2.0 + distance;
 
-			double score = (double) dodges / 2.0 + (double) botSpeed / 2.0 + distance;
-
-			if (score < lowestScore) {
-				lowestScore = score;
-				bestTarget = bot;
+				if (score < lowestScore) {
+					lowestScore = score;
+					bestTarget = bot;
+				}
 			}
 		}
 		return bestTarget;
 	}
 
-	private GameRobot findNearbyTarget() {
+	private GameRecord findNearbyTarget() {
 
 		int proximityRad = 3;
-		for (int i = 0; i < playersinfo.length; i++) {
-			GameRobot bot = playersinfo[i];
-			if (!bot.getName().equalsIgnoreCase("killer") && !bot.isRobotFrozen()) {
-				int distance = findDistance(bot.getAvenue(), bot.getStreet());
-				if (distance <= proximityRad) {
+		for(int i = 0; i <playersinfo.length; i++) {
+			GameRecord bot = playersinfo[i];
+			if(!bot.getName().equalsIgnoreCase("killer") && !bot.isRobotFrozen()) {
+				int distance = findDistance(bot.getAvenue(),bot.getStreet());
+				if(distance <= proximityRad) {
 					return bot;
 				}
 			}
@@ -334,17 +391,17 @@ public class KillerBot extends GameRobot {
 
 	private Coordinates findClosetCorner(Coordinates[] corners) {
 
-		if (corners.length == 0) {
+		if(corners == null || corners.length == 0) {
 			return null;
 		}
 
 		Coordinates closest = corners[0];
-		int minDistance = findDistance(closest.getAvenue(), closest.getStreet());
+		int minDistance = findDistance(closest.getAvenue(),closest.getStreet());
 
-		for (int i = 1; i < corners.length; i++) {
+		for(int i = 1; i <corners.length; i++) {
 			Coordinates corner = corners[i];
-			int distance = findDistance(corner.getAvenue(), corner.getAvenue());
-			if (distance < minDistance) {
+			int distance = findDistance(corner.getAvenue(), corner.getStreet());
+			if(distance < minDistance) {
 				minDistance = distance;
 				closest = corner;
 			}
@@ -353,28 +410,14 @@ public class KillerBot extends GameRobot {
 	}
 
 	private int findDistance(int avenue, int street) {
-
-		int diffAvenue = this.getAvenue() - avenue;
-		if (diffAvenue < 0) {
-			diffAvenue = diffAvenue * -1;
-		}
-
-		int diffStreet = this.getStreet() - street;
-		if (diffStreet < 0) {
-			diffStreet = diffStreet * -1;
-		}
-
+		int diffAvenue = Math.abs(this.getAvenue() - avenue);
+		int diffStreet = Math.abs(this.getStreet() - street);
 		return diffAvenue + diffStreet;
 	}
 
-	/**
-	 * helper methods to turn the robot in the specific direction
-	 */
 	private void faceNorth() {
 		while (this.getDirection() != Direction.NORTH) {
-			// if it is not north then turn right
 			if (this.getDirection() == Direction.EAST) {
-				// just turn left
 				this.turnLeft();
 			} else {
 				this.turnRight();
@@ -382,29 +425,19 @@ public class KillerBot extends GameRobot {
 		}
 	}
 
-	/**
-	 * helper methods to turn the robot in the specific direction
-	 */
 	private void faceSouth() {
 		while (this.getDirection() != Direction.SOUTH) {
-			// if it is not south then turn left
 			if (this.getDirection() == Direction.EAST) {
-				// just turn right
 				this.turnRight();
 			} else {
 				this.turnLeft();
 			}
-		}
+			}
 	}
 
-	/**
-	 * helper methods to turn the robot in the specific direction
-	 */
 	private void faceEast() {
 		while (this.getDirection() != Direction.EAST) {
-			// if it is not east then turn left
 			if (this.getDirection() == Direction.NORTH) {
-				// just turn right
 				this.turnRight();
 			} else {
 				this.turnLeft();
@@ -412,14 +445,9 @@ public class KillerBot extends GameRobot {
 		}
 	}
 
-	/**
-	 * helper methods to turn the robot in the specific direction
-	 */
 	private void faceWest() {
 		while (this.getDirection() != Direction.WEST) {
-			// if it is not west then turn left
 			if (this.getDirection() == Direction.SOUTH) {
-				// just turn right
 				this.turnRight();
 			} else {
 				this.turnLeft();

@@ -11,7 +11,7 @@ public class CrewRobot extends GameRobot {
 	private int dodgingAbility;
 	private String type;
 	private Coordinates[] itemCoordinates;
-	private GameRobot[] playersInfo;
+	private GameRecord[] playersInfo;
 	private Arena arena;
 
 	private int killerIndex;
@@ -22,17 +22,15 @@ public class CrewRobot extends GameRobot {
 	private int estimatedCatchAbility = 50;
 	private int totalEncounters = 0;
 	private int successfulDodges = 0;
-	private String id;
+	private int id;
 
-	public CrewRobot(City c, int street, int avenue, Direction d, Arena arena, int energy, int speed, String type,
-			int dodgingAbility, int catchAbility) {
-		super(c, street, avenue, d, arena, energy, speed, type, dodgingAbility, catchAbility);
+	public CrewRobot(int id, City c, int street, int avenue, Direction d, Arena arena, int energy, int speed,
+			String type, int dodgingAbility, int catchAbility) {
+		super(id, c, street, avenue, d, arena, energy, speed, type, dodgingAbility, catchAbility);
 		this.type = "crew";
-		this.dodgingAbility = dodgingAbility;
+		// this.dodgingAbility = dodgingAbility;
 		catchAbility = 0;
 		this.arena = arena;
-		this.id  = type + "-" +UUID.randomUUID().toString()+ " ";
-		System.out.println(this.id + "Crew"+id);
 	}
 
 	public void move() {
@@ -46,16 +44,34 @@ public class CrewRobot extends GameRobot {
 		this.setEnergy(this.getEnergy() - 1);
 	}
 
-	public void setIsRobotFrozen(boolean isFrozen) {
-		boolean dodged = false;
-		
-		dodged = this.tryToDodge();             
-        this.recordGotFrozen(dodged);
-		this.frozen = dodged;
+//	public void setIsRobotFrozen(boolean isFrozen) {
+//		boolean dodged = false;
+//		
+//		dodged = this.tryToDodge();             
+//        this.recordGotFrozen(dodged);
+//		this.frozen = dodged;
+//
+//	}
 
+	public void SetisRobotFrozen(boolean isFrozen) {
+		if (isFrozen) {
+			boolean dodged = this.tryToDodge();
+			this.recordGotFrozen(dodged);
+
+			if (dodged) {
+				super.setIsRobotFrozen(false);
+				this.frozen = false;
+			} else {
+				super.setIsRobotFrozen(true);
+				this.frozen = true;
+			}
+		} else {
+			super.setIsRobotFrozen(false);
+			this.frozen = false;
+		}
 	}
-	
-	public GameRobot[] moveTurn(GameRobot[] robots, int i, Coordinates[] itemCoordinates) {
+
+	public MoveStatus moveTurn(GameRecord[] robots, int i, Coordinates[] itemCoordinates) {
 		// System.out.println(this.getName() + " has " + this.getEnergy() + " energy
 		// left.");
 		this.itemCoordinates = itemCoordinates;
@@ -63,19 +79,18 @@ public class CrewRobot extends GameRobot {
 
 		int index;
 		for (index = 0; index < playersInfo.length; index++) {
-			GameRobot player = playersInfo[index];
+			GameRecord player = playersInfo[index];
 			if (player.getName().compareTo("killer") == 0) {
 				this.killerIndex = index;
 			}
 		}
-		
 
 		if (this.getEnergy() <= 0) {
 			System.out.println(this.id + " setting energy to 90.");
 			this.setEnergy(this.getEnergy() + 90);
 		} else if (this.getEnergy() >= 30) {
 			// System.out.println(this.id + "taking offensive stretegy.");
-			this.offensiveStrategy(itemCoordinates, this.playersInfo, arena.getCorners());
+			this.offensiveStrategy(itemCoordinates);
 			// System.out.println(this.id + "took offensive stretegy.");
 		} else {
 			// System.out.println(this.id + "taking defensive stretegy.");
@@ -83,14 +98,11 @@ public class CrewRobot extends GameRobot {
 			// System.out.println(this.id + "took defensive stretegy.");
 		}
 
-		this.playersInfo[i].setAvenue(this.getAvenue());
-		this.playersInfo[i].setStreet(this.getStreet());
-
 		robots = playersInfo;
-		return robots;
+		return new MoveStatus(this.id, -1, " ");
 	}
 
-	private void offensiveStrategy(Coordinates[] itemCoordinates, GameRobot[] playersInfo, Coordinates[] corners) {
+	private void offensiveStrategy(Coordinates[] itemCoordinates) {
 		// Coordinates[] sortedCornersList = findClosestCorner(corners);
 
 //		for (int i = 0; i < sortedCornersList.length; i++) {
@@ -115,7 +127,7 @@ public class CrewRobot extends GameRobot {
 						System.out.println(this.id + "picked thing");
 
 					} else {
-						System.out.println(this.id + "can't pick");
+						System.out.println(this.id + " can't pick");
 						currentTarget = null;
 					}
 					// currentTarget = null;
@@ -127,7 +139,7 @@ public class CrewRobot extends GameRobot {
 		} else {
 			System.out.println(this.id + "Dropping thing now.");
 			if (currentCornerTarget == null) {
-				Coordinates[] sortedCornersList = findClosestCorner(corners);
+				Coordinates[] sortedCornersList = findClosestCorner(this.arena.getCorners());
 				currentCornerTarget = sortedCornersList[0];
 			}
 			this.moveTowards(currentCornerTarget);
@@ -189,7 +201,7 @@ public class CrewRobot extends GameRobot {
 				this.changeDirection(Direction.SOUTH);
 				nextSpot = new Coordinates(this.getStreet() + 1, this.getAvenue());
 			} else {
-				
+
 				break;
 			}
 
@@ -208,7 +220,7 @@ public class CrewRobot extends GameRobot {
 
 	}
 
-	private Coordinates findItem(Coordinates[] itemCoordinates, GameRobot[] playersInfo) {
+	private Coordinates findItem(Coordinates[] itemCoordinates, GameRecord[] playersInfo2) {
 		for (int j = 0; j < itemCoordinates.length - 1; j++) {
 			for (int k = 1; k < itemCoordinates.length - j; k++) {
 				Coordinates item1 = itemCoordinates[k - 1];
@@ -267,21 +279,21 @@ public class CrewRobot extends GameRobot {
 //		this.moveTowards(closestCorner);
 //	}
 
-	private void defensiveStrategy(Arena arena, GameRobot[] playersInfo, Coordinates[] corners) {
-		Coordinates killerCoord = new Coordinates(playersInfo[killerIndex].getStreet(),
-				playersInfo[killerIndex].getAvenue());
+	private void defensiveStrategy(Arena arena, GameRecord[] playersInfo2, Coordinates[] corners) {
+		Coordinates killerCoord = new Coordinates(playersInfo2[killerIndex].getStreet(),
+				playersInfo2[killerIndex].getAvenue());
 		Coordinates currentCoord = new Coordinates(this.getStreet(), this.getAvenue());
 
 		// ArrayList<Coordinates> openSpots = this.getEmptySpots(arena, playersInfo);
 
 		if (estimatedCatchAbility > 50 || findDistance(killerCoord, currentCoord) <= 4) {
 			System.out.println(this.id + "Using defensive strategy.");
-			Coordinates farthestSpot = this.findFarthestSpot(arena, playersInfo);
+			Coordinates farthestSpot = this.findFarthestSpot(arena, playersInfo2);
 			this.moveTowards(farthestSpot);
 		} else {
 			System.out.println(this.id + "Using offensive strategy inside defensive strategy.");
 
-			this.offensiveStrategy(itemCoordinates, playersInfo, corners);
+			this.offensiveStrategy(itemCoordinates);
 //            Coordinates safeSpot = this.findSafeSpot(arena, playersInfo);
 //            this.moveTowards(safeSpot);
 		}
@@ -322,11 +334,11 @@ public class CrewRobot extends GameRobot {
 //		}
 //	}
 
-	private Coordinates findFarthestSpot(Arena arena, GameRobot[] playersInfo) {
-		GameRobot killer = playersInfo[killerIndex];
+	private Coordinates findFarthestSpot(Arena arena, GameRecord[] playersInfo2) {
+		GameRecord killer = playersInfo2[killerIndex];
 		Coordinates killerPosition = new Coordinates(killer.getStreet(), killer.getAvenue());
 
-		ArrayList<Coordinates> openSpots = this.getEmptySpots(arena, playersInfo);
+		ArrayList<Coordinates> openSpots = this.getEmptySpots(arena, playersInfo2);
 
 		for (int i = 0; i < openSpots.size() - 1; i++) {
 			for (int j = 0; j < openSpots.size() - i - 1; j++) {
@@ -346,13 +358,13 @@ public class CrewRobot extends GameRobot {
 		}
 	}
 
-	private ArrayList<Coordinates> getEmptySpots(Arena arena, GameRobot[] playersInfo) {
+	private ArrayList<Coordinates> getEmptySpots(Arena arena, GameRecord[] playersInfo2) {
 		ArrayList<Coordinates> openSpots = new ArrayList<Coordinates>();
 		for (int avenue = 0; avenue < arena.getWidth(); avenue++) {
 			for (int street = 0; street < arena.getHeight(); street++) {
 				boolean occupied = false;
-				for (int i = 0; i < playersInfo.length; i++) {
-					GameRobot currentRobot = playersInfo[i];
+				for (int i = 0; i < playersInfo2.length; i++) {
+					GameRecord currentRobot = playersInfo2[i];
 					if (currentRobot.getAvenue() == avenue && currentRobot.getStreet() == street) {
 						occupied = true;
 						break;

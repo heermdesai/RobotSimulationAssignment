@@ -6,22 +6,22 @@ import becker.robots.*;
 
 public class MedicRobot extends GameRobot{
 
-	public MedicRobot(City c, int street, int avenue, Direction d, Arena arena, int energy, int speed, String type, int dodgeChance, int catchChance){
-		super(c, street, avenue, d, arena, energy, speed,type,dodgeChance,catchChance);
+	public MedicRobot(int id,City c, int street, int avenue, Direction d, Arena arena, int energy, int speed, String type, int dodgeChance, int catchChance){
+		super(id,c, street, avenue, d, arena, energy, speed,type,dodgeChance,catchChance);
 	}
 
 	int turnCount=0;
 
-	public GameRobot[] moveTurn(GameRobot[] robots, int index, Coordinates[] itemInfo) {
+	public MoveStatus moveTurn(GameRecord[] robots, int index, Coordinates[] itemInfo) {
 
 		turnCount++;
 
+		MoveStatus status;
 		int energy=robots[index].getEnergy();
 		double speed = robots[index].getSpeed(); // check why double
 
-		//int steps=determineSteps(speed,energy);
+		int steps=determineSteps(speed,energy);
 
-		int steps=5;
 		int[] killerLocation = findKillerLocation(robots);
 		int killerStreet = killerLocation[0];
 		int killerAvenue = killerLocation[1];
@@ -36,17 +36,17 @@ public class MedicRobot extends GameRobot{
 			int targetAvenue = frozenCrewMatesLocation[0][1];
 
 			//System.out.println(killerX + " " + killerY);
-			robots=this.moveStratergy1(robots,index,steps,energy,targetStreet,targetAvenue,killerStreet,killerAvenue);
+			status=this.moveStratergy1(robots,index,steps,energy,targetStreet,targetAvenue,killerStreet,killerAvenue);
 		}
 		else {
-			robots=this.moveStratergy2(robots, index,steps,energy,killerStreet,killerAvenue);
+			status=this.moveStratergy2(robots, index,steps,energy,killerStreet,killerAvenue);
 		}
 
 		//System.out.println(robots[index].getEnergy());
 		//this.turnAround();
 		//this.move();
-		robots[index].setAvenue(this.getAvenue());
-		robots[index].setStreet(this.getStreet());
+		//this.setAvenue(this.getAvenue());
+		//robots[index].setStreet(this.getStreet());
 
 		if (turnCount==5) {
 			energy+=10;
@@ -56,7 +56,7 @@ public class MedicRobot extends GameRobot{
 			turnCount=0;
 			robots[index].setEnergy(energy);
 		}
-		return robots;
+		return status;
 	}
 
 	private int determineSteps(double speed, int energy) {
@@ -72,7 +72,7 @@ public class MedicRobot extends GameRobot{
 			steps=4;
 		}
 		else if(speed>=80&&speed<=100) {
-			steps=7;
+			steps=5;
 		}
 
 		if(energy<50) {
@@ -115,7 +115,7 @@ public class MedicRobot extends GameRobot{
 		return ((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2));
 	}
 
-	private int[] findKillerLocation(GameRobot[] robots) {
+	private int[] findKillerLocation(GameRecord[] robots) {
 		int killerY = -1;
 		int killerX = -1;
 		for (int i = 0; i < robots.length; i++) {
@@ -128,7 +128,7 @@ public class MedicRobot extends GameRobot{
 		return new int[]{killerY, killerX};
 	}
 
-	private int[][] getFrozenRobotsLocation(GameRobot[] robots, int crewMateFroxen) {
+	private int[][] getFrozenRobotsLocation(GameRecord[] robots, int crewMateFroxen) {
 
 		int[][] cordinates = new int[crewMateFroxen][2];
 		int j=0;
@@ -142,7 +142,7 @@ public class MedicRobot extends GameRobot{
 		return cordinates;
 	}
 
-	private int checkIsRobotsFrozen(GameRobot[] robots) {
+	private int checkIsRobotsFrozen(GameRecord[] robots) {
 
 		int numRobotsFroxen=0;
 		for(int i=0;i<robots.length;i++) {
@@ -156,39 +156,16 @@ public class MedicRobot extends GameRobot{
 		return numRobotsFroxen;	
 	}
 
-	private GameRobot[] moveStratergy1(GameRobot[] robots, int index,int moveSteps,int energy,int targetStreet, int targetAvenue, int killerStreet, int killerAvenue) {
+	private MoveStatus moveStratergy1(GameRecord[] robots, int index,int moveSteps,int energy,int targetStreet, int targetAvenue, int killerStreet, int killerAvenue) {
 
 		int steps = 0;
-		
-		while (steps < moveSteps && (this.getStreet() != targetStreet || this.getAvenue() != targetAvenue)) {
-			//int currentStreet = this.getStreet();
-			//int currentAvenue = this.getAvenue();
 
-			/*
-			 * // Step priority: vertical first, then horizontal if (currentStreet <
-			 * targetStreet && !isDangerous(currentStreet + 1, currentAvenue, killerStreet,
-			 * killerAvenue)) { this.setDirection(Direction.SOUTH); this.move(); } else if
-			 * (currentStreet > targetStreet && !isDangerous(currentStreet - 1,
-			 * currentAvenue, killerStreet, killerAvenue)) {
-			 * this.setDirection(Direction.NORTH); this.move(); } else if (currentAvenue <
-			 * targetAvenue && !isDangerous(currentStreet, currentAvenue + 1, killerStreet,
-			 * killerAvenue)) { this.setDirection(Direction.EAST); this.move(); } else if
-			 * (currentAvenue > targetAvenue && !isDangerous(currentStreet, currentAvenue -
-			 * 1, killerStreet, killerAvenue)) { this.setDirection(Direction.WEST);
-			 * this.move(); } else { // All options are dangerous or blocked
-			 * System.out.println("Medic: No safe move available this turn."); break; }
-			 */
+		MoveStatus status= new MoveStatus(-1,-1,"");
+
+		while (steps < moveSteps && (this.getStreet() != targetStreet || this.getAvenue() != targetAvenue)) {
+
 
 			boolean moved = moveTowardTarget(targetStreet, targetAvenue, killerStreet, killerAvenue);
-			/*
-			 * boolean moved=false; if (isDangerous(currentStreet, currentAvenue,
-			 * killerStreet, killerAvenue)) { // 🛡️ In danger zone → move away from killer
-			 * moved = moveAwayFromKiller(killerStreet, killerAvenue); } else { // ✅ Safe →
-			 * try to move toward target moved = moveTowardTarget(targetStreet,
-			 * targetAvenue, killerStreet, killerAvenue); } if (!moved) {
-			 * System.out.println("No move made, exiting loop to prevent infinite turn.");
-			 * break; }
-			 */
 
 			steps++;
 
@@ -199,15 +176,17 @@ public class MedicRobot extends GameRobot{
 				}
 				robots[index].setEnergy(energy);
 			}
-			robots=unfreezeRobot(robots);
+			status=unfreezeRobot(robots);
 		}
-		return robots;
+		return status;
 	}
-	
-	
-	private GameRobot[] moveStratergy2(GameRobot[] robots, int index,int numSteps, int energy,int killerStreet, int killerAvenue) {
+
+
+	private MoveStatus moveStratergy2(GameRecord[] robots, int index,int numSteps, int energy,int killerStreet, int killerAvenue) {
 
 		int steps = 0;
+		MoveStatus status= new MoveStatus(-1,-1,"");
+
 
 		while (steps < numSteps) {
 			int currStreet = this.getStreet();
@@ -216,17 +195,18 @@ public class MedicRobot extends GameRobot{
 
 			boolean moved = false;
 			if (isDangerous(currStreet,currAvenue,killerStreet,killerAvenue)) {
-				
+
 				int distance = Math.abs(currStreet - killerStreet) + Math.abs(currAvenue - killerAvenue);
 				int safeSteps = Math.max(1, 6 - distance);  // Closer killer → more steps
 				moved = moveAwayFromKiller(killerStreet, killerAvenue, safeSteps);
+				status=unfreezeRobot(robots);
 				// Already have moveAwayFromKiller helper
 				//moved =moveAwayFromKiller(killerStreet, killerAvenue,2);
 				energy-=3;
 				if(energy<=0) {
 					energy=1;
 				}
-				robots[index].setEnergy(energy);
+				this.setEnergy(energy);
 
 			} else {
 				// Random safe move — let's write this to reuse your helpers
@@ -235,17 +215,16 @@ public class MedicRobot extends GameRobot{
 				if(energy>=100) {
 					energy=100;
 				}
-				robots[index].setEnergy(energy);
+				this.setEnergy(energy);
 			}
 
 			if (!moved) {
 				// Cannot move — exit loop
 				break;
 			}
-			robots=unfreezeRobot(robots);
 			steps++;
 		}
-		return robots;
+		return status;
 
 	}
 
@@ -269,79 +248,92 @@ public class MedicRobot extends GameRobot{
 	 * false; } }
 	 */
 
-	private boolean moveAwayFromKiller(int killerStreet, int killerAvenue) {
-		int currStreet = this.getStreet();
-		int currAvenue = this.getAvenue();
+	/*
+	 * private boolean moveAwayFromKiller(int killerStreet, int killerAvenue) { int
+	 * currStreet = this.getStreet(); int currAvenue = this.getAvenue();
+	 * 
+	 * int[][] directions = {{-1, 0},{1, 0},{0, -1},{0, 1}}; // NORTH, SOUTH, WEST,
+	 * EAST
+	 * 
+	 * int maxDistance = -1; int bestDirIndex = -1;
+	 * 
+	 * for (int i = 0; i < directions.length; i++) { int newStreet = currStreet +
+	 * directions[i][0]; int newAvenue = currAvenue + directions[i][1]; int distance
+	 * = Math.abs(newStreet - killerStreet) + Math.abs(newAvenue - killerAvenue);
+	 * 
+	 * if (distance > maxDistance && isValidMove(newStreet, newAvenue)) {
+	 * maxDistance = distance; bestDirIndex = i; } }
+	 * 
+	 * if (bestDirIndex != -1) { int streetChange = directions[bestDirIndex][0]; int
+	 * avenueChange = directions[bestDirIndex][1];
+	 * 
+	 * 
+	 * int newStreet = currStreet + streetChange; int newAvenue = currAvenue +
+	 * avenueChange;
+	 * 
+	 * moveInDirection(streetChange, avenueChange); return true; //return
+	 * (this.getStreet() != currStreet || this.getAvenue() != currAvenue); }
+	 * 
+	 * return false; }
+	 */
 
-		int[][] directions = {{-1, 0},{1, 0},{0, -1},{0, 1}}; // NORTH, SOUTH, WEST, EAST
+	private boolean moveAwayFromKiller(int killerStreet, int killerAvenue, int numSteps) {
+		int steps = 0;
+		boolean movedAtLeastOnce = false;
 
-		int maxDistance = -1;
-		int bestDirIndex = -1;
+		while (steps < numSteps) {
+			int currStreet = this.getStreet();
+			int currAvenue = this.getAvenue();
 
-		for (int i = 0; i < directions.length; i++) {
-			int newStreet = currStreet + directions[i][0];
-			int newAvenue = currAvenue + directions[i][1];
-			int distance = Math.abs(newStreet - killerStreet) + Math.abs(newAvenue - killerAvenue);
+			int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}; // NORTH, SOUTH, WEST, EAST
+			int maxDistance = -1;
+			ArrayList<Integer> bestDirIndex = new ArrayList<Integer>();
 
-			if (distance > maxDistance && isValidMove(newStreet, newAvenue)) {
-				maxDistance = distance;
-				bestDirIndex = i;
+			for (int i = 0; i < directions.length; i++) {
+				int newStreet = currStreet + directions[i][0];
+				int newAvenue = currAvenue + directions[i][1];
+				// int distance = Math.abs(newStreet - killerStreet) + Math.abs(newAvenue - killerAvenue);
+
+				// if (distance > maxDistance && isValidMove(newStreet, newAvenue)) {
+				//   maxDistance = distance;
+				//    bestDirIndex = i;
+				//  }
+				if (isValidMove(newStreet, newAvenue)) {
+					// Optional debug print
+					// System.out.println("Invalid move at: " + newStreet + ", " + newAvenue);
+					int distance = Math.abs(newStreet - killerStreet) + Math.abs(newAvenue - killerAvenue);
+
+					if (distance > maxDistance) {
+						maxDistance = distance;
+						bestDirIndex.clear();
+						bestDirIndex.add(i);
+					} 
+					else if (distance == maxDistance) {
+						bestDirIndex.add(i);
+					}
+				}
+			}
+
+			if (bestDirIndex.size() != 0) {
+				Random rand = new Random();
+				int randomIndex = rand.nextInt(bestDirIndex.size());
+				int chosenDirection = bestDirIndex.get(randomIndex);
+				int streetChange = directions[chosenDirection][0];
+				int avenueChange = directions[chosenDirection][1];
+				moveInDirection(streetChange, avenueChange);
+
+				movedAtLeastOnce = true;
+				steps++;
+			} else {
+				// No more moves possible
+				break;
 			}
 		}
 
-		if (bestDirIndex != -1) {
-			int streetChange = directions[bestDirIndex][0];
-			int avenueChange = directions[bestDirIndex][1];
+		return movedAtLeastOnce;
 
-
-			int newStreet = currStreet + streetChange;
-			int newAvenue = currAvenue + avenueChange;
-
-			moveInDirection(streetChange, avenueChange);
-			return true;
-			//return (this.getStreet() != currStreet || this.getAvenue() != currAvenue);
-		}
-
-		return false;
 	}
-	
-	private boolean moveAwayFromKiller(int killerStreet, int killerAvenue, int numSteps) {
-	    int steps = 0;
-	    boolean movedAtLeastOnce = false;
 
-	    while (steps < numSteps) {
-	        int currStreet = this.getStreet();
-	        int currAvenue = this.getAvenue();
-
-	        int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}; // NORTH, SOUTH, WEST, EAST
-	        int maxDistance = -1;
-	        int bestDirIndex = -1;
-
-	        for (int i = 0; i < directions.length; i++) {
-	            int newStreet = currStreet + directions[i][0];
-	            int newAvenue = currAvenue + directions[i][1];
-	            int distance = Math.abs(newStreet - killerStreet) + Math.abs(newAvenue - killerAvenue);
-
-	            if (distance > maxDistance && isValidMove(newStreet, newAvenue)) {
-	                maxDistance = distance;
-	                bestDirIndex = i;
-	            }
-	        }
-
-	        if (bestDirIndex != -1) {
-	            int streetChange = directions[bestDirIndex][0];
-	            int avenueChange = directions[bestDirIndex][1];
-	            moveInDirection(streetChange, avenueChange);
-
-	            movedAtLeastOnce = true;
-	            steps++;
-	        } else {
-	            // No more moves possible
-	            break;
-	        }
-	    }
-	    return movedAtLeastOnce;
-	}
 
 	private void moveInDirection(int streetChange, int avenueChange) {
 		if (streetChange == -1) {
@@ -358,7 +350,7 @@ public class MedicRobot extends GameRobot{
 		}
 
 		this.move();
-		
+
 	}
 
 	private boolean moveTowardTarget(int targetStreet, int targetAvenue, int killerStreet, int killerAvenue) {
@@ -479,39 +471,41 @@ public class MedicRobot extends GameRobot{
 	 * 
 	 * return clear; }
 	 */
-	
+
 	private boolean isValidMove(int targetStreet, int targetAvenue) {
-	    // Check bounds of the grid
-	    if (targetStreet < 0 || targetStreet >= 12|| targetAvenue < 0 || targetAvenue >= 11) {
-	        return false;
-	    }
+		// Check bounds of the grid
+		if (targetStreet < 0 || targetStreet >= 12 || targetAvenue < 0 || targetAvenue >= 23) {
+			return false;
+		}
 
-	    // If target is adjacent
-	    int streetDiff = Math.abs(targetStreet - this.getStreet());
-	    int avenueDiff = Math.abs(targetAvenue - this.getAvenue());
+		// If target is adjacent
+		int streetDiff = Math.abs(targetStreet - this.getStreet());
+		int avenueDiff = Math.abs(targetAvenue - this.getAvenue());
 
-	    // Only move 1 step N/S/E/W
-	    if ((streetDiff == 1 && avenueDiff == 0) || (streetDiff == 0 && avenueDiff == 1)) {
-	        return true; // ✅ It's a valid adjacent move, assume no wall
-	    }
-	    return false;
+		// Only move 1 step N/S/E/W
+		if ((streetDiff == 1 && avenueDiff == 0) || (streetDiff == 0 && avenueDiff == 1)) {
+			return true; // ✅ It's a valid adjacent move, assume no wall
+		}
+		return false;
 	}
 
-	private GameRobot[] unfreezeRobot(GameRobot[] robots) {
+	private MoveStatus unfreezeRobot(GameRecord[] robots) {
 
+		MoveStatus status= new MoveStatus(-1,-1,"");
 		for (int i = 0; i < robots.length; i++) {
 			if ((robots[i].getName().equalsIgnoreCase("crew")||robots[i].getName().equalsIgnoreCase("medic")) &&
 					robots[i].getStreet() == this.getStreet() &&
 					robots[i].getAvenue() == this.getAvenue() &&
 					robots[i].isRobotFrozen()) {
 
-				robots[i].setIsRobotFrozen(false); // Call your method to unfreeze
+				//robots[i].SetisRobotFrozen(false); // Call your method to unfreeze
+				status = new MoveStatus(this.getID(),robots[i].getID(),"unfreeze");				
 				break; // stop after unfreezing one
 			}
 		}
-		return robots;
+		return status;
 	}
-	
+
 	/*
 	 * private boolean frontIsClear(Direction dir) { int currStreet =
 	 * this.getStreet(); int currAvenue = this.getAvenue(); City city =

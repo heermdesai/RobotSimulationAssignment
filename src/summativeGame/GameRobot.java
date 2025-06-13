@@ -16,10 +16,13 @@ public abstract class GameRobot extends RobotSE {
 	protected boolean frozen;
 	private Coordinates[] itemInfo;
 	private int catchingAbility;
+	private int dodgeAbility;
+	int id;
 
-	public GameRobot(City c, int street, int avenue, Direction d, Arena arena, int energy, int speed, String type,
+	public GameRobot(int id, City c, int street, int avenue, Direction d, Arena arena, int energy, int speed, String type,
 			int dodgeChance, int catchChance) {
 		super(c, street, avenue, d);
+		this.id = id;
 		this.arena = arena;
 		this.energy = energy;
 		this.speed = speed;
@@ -28,6 +31,7 @@ public abstract class GameRobot extends RobotSE {
 		this.y = avenue;
 		this.frozen = false;
 		this.catchingAbility = catchChance;
+		this.dodgeAbility = dodgeChance;
 	}
 
 	public String getName() {
@@ -100,6 +104,14 @@ public abstract class GameRobot extends RobotSE {
 
 	}
 
-	public abstract GameRobot[] moveTurn(GameRobot[] playersInfo, int i, Coordinates[] itemCoordinates);
+	public abstract MoveStatus moveTurn(GameRecord[] playersInfo, int i, Coordinates[] itemCoordinates);
+
+	public int getID() {
+		return this.id;
+	}
+
+	public int getDodgeChance() {
+		return this.dodgeAbility;
+	}
 
 }

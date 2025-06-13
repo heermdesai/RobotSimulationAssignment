@@ -3,21 +3,21 @@ package summativeGame;
 public class MoveStatus {
 
 	
-	private String robotId;
-	private String targetRobotId;
+	private int robotId;
+	private int targetRobotId;
 	private String operation;
 	
-	public MoveStatus(String robotId, String targetRobotId, String operation) {
+	public MoveStatus(int robotId, int targetRobotId, String operation) {
 		this.robotId = robotId;
 		this.targetRobotId = targetRobotId;
 		this.operation = operation;
 	}
 
-	public String getRobotId() {
+	public int getRobotId() {
 		return robotId;
 	}
 
-	public String getTargetRobotId() {
+	public int getTargetRobotId() {
 		return targetRobotId;
 	}
 
