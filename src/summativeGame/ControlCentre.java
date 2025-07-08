@@ -1,127 +1,124 @@
 package summativeGame;
 
 import java.awt.Color;
-import java.util.ArrayList;
-
 import becker.robots.*;
-//import java.util.Random;
 
+/**
+ * Control Center (application class) that runs the game
+ * 
+ * @author Samarvir, Aditya, Heer
+ * @version June 13th, 2025
+ */
 public class ControlCentre {
+
+	/**
+	 * Main method that runs the game
+	 */
 	public static void main(String[] args) {
-		// Step 1: Create Arena
+
 		Arena arena = new Arena();
 		City city = arena.getCity();
 		Coordinates[] itemCoordinates = arena.getListofItems();
 
+		// Initializing the robots inside the arena
 		int numPlayers = 5;
 		GameRobot[] robots = new GameRobot[numPlayers];
-		robots[0] = new MedicRobot(1, city, 11, 2, Direction.EAST, arena, 100, 50, "medic", 10, 0);
+		robots[0] = new MedicRobot(0, city, 11, 2, Direction.EAST, arena, 100, 5, "medic", 10, 0);
+		robots[0].setColor(Color.BLACK);
 		robots[1] = new CrewRobot(2, city, 2, 15, Direction.EAST, arena, 100, 7, "crew", 10, 0);
-		robots[2] = new CrewRobot(3, city, 8, 10, Direction.EAST, arena, 100, 7, "crew", 10, 0);
-		robots[3] = new CrewRobot(3, city, 8, 10, Direction.EAST, arena, 100, 7, "crew", 10, 0);
-		robots[4] = new KillerBot(4, city, 2, 8, Direction.EAST, arena, 100, 5, "killer", 0, 0);
-
-		robots[4].setColor(Color.ORANGE);
-		robots[0].setColor(Color.MAGENTA);
-
-		// 20,"killer",10,0);
-
-		// Testing X and Y location for Robots
-//			for(int j=0;j<numPlayers;j++) {
-//				System.out.print(robots[j].getAvenue() + " " );
-//				System.out.print(robots[j].getStreet() + " " );
-//
-//			}
-//			System.out.println();
-
-		// Testing X, Y and IsPicked for items
-//			for(int j=0;j<numThings;j++) {
-//				//System.out.print(robots[1].getItemInfo()[j].getIsPicked() + " ");
-//				//System.out.print(robots[1].getItemInfo()[j].getAvenue() + " ");
-//				//System.out.print(robots[1].getItemInfo()[j].getStreet()+ " ");
-//				System.out.println(itemCoordinates[j]);
-//
-//			}
-		// System.out.println();
-
-		// Updating record and robots move their turn
-		// robots=robots[i].moveTurn(robots,i,itemCoordinates);
-
-		boolean allPlayerFrozen = false;
-		boolean allItemsDropped = false;
+		robots[2] = new CrewRobot(3, city, 8, 10, Direction.EAST, arena, 100, 8, "crew", 10, 0);
+		robots[3] = new CrewRobot(4, city, 10, 3, Direction.SOUTH, arena, 100, 8, "crew", 10, 0);
+		robots[4] = new KillerBot(1, city, 2, 8, Direction.EAST, arena, 100, 5, "killer", 0, 100);
+		robots[4].setColor(Color.BLUE);
+	
 		int index = 0;
 
-		// need a winning and loosing condition
-		while (!(allPlayerFrozen || allItemsDropped)) {
+		// call the moveTurn method for all robots
+		while (true) {
 
-			GameRecord[] record = getRecord(robots);
+			GameRecord[] record = getRecord(robots); // gets the updated record
 
-			MoveStatus status = new MoveStatus(-1, -1, "");
-			// Updating record and robots move their turn
+			// if the robot is frozen, skip its turn
 			if (!robots[index].isRobotFrozen()) {
-				status = robots[index].moveTurn(record, index, itemCoordinates);
-				// MoveMessage got returned
-				// check moveMovessage
-				// if targetRobotId and operation is freeze
-				// this.freezeRobotById(targetRobotoId)
-				// else operation is heal
-				// this.unfreezeRobotById(targetRob
-			}
+				MoveStatus status = robots[index].moveTurn(record, index, itemCoordinates); // each robot take their
+																							// turn
 
-			if (status != null && status.getTargetRobotId() != -1) {
-				int targetId = status.getTargetRobotId();
-				if (status.getOperation().equalsIgnoreCase("freeze")) {
-					robots[targetId].setIsRobotFrozen(true);
-				} else if (status.getOperation().equalsIgnoreCase("unfreeze")) {
-					robots[targetId].setIsRobotFrozen(false);
+				// Updates the robot if any robot is frozen or unfrozen
+				if (status != null && status.getTargetRobotId() != -1) {
+					int targetId = status.getTargetRobotId();
+					if (targetId >= 0 && targetId < robots.length) {
+
+						// freeze the robot
+						if (status.getOperation().equalsIgnoreCase("freeze")) {
+							robots[targetId].setIsRobotFrozen(true);
+							System.out.println("Robot " + robots[targetId].getID() + " (" + robots[targetId].getName()
+									+ ") has been FROZEN!");
+						}
+						// unfreeze the robot
+						else if (status.getOperation().equalsIgnoreCase("unfreeze")) {
+							robots[targetId].setIsRobotFrozen(false);
+							System.out.println("Robot " + robots[targetId].getID() + " (" + robots[targetId].getName()
+									+ ") has been UNFROZEN!");
+						}
+					}
 				}
 			}
 
-			/*
-			 * for(int i=0;i<robots.length;i++) {
-			 * robots[i].setAvenue(record[i].getAvenue());
-			 * robots[i].setStreet(record[i].getStreet());
-			 * robots[i].setEnergy(record[i].getEnergy());
-			 * robots[i].SetisRobotFrozen(record[i].isRobotFrozen());
-			 * robots[i].setSpeed(record[i].getSpeed());
-			 * robots[i].setDodgeChance(record[i].getDodgeChance());
-			 * robots[i].setCatchChance(record[i].getCatchChance()); }
-			 */
-
 			index++;
+
+			// Reset index to 0 after all robot moves their turn
 			if (index == robots.length) {
 				index = 0;
 			}
 
-			allPlayerFrozen = isAllRobotFrozen(robots);
-			allItemsDropped = isAllItemsDroppped(itemCoordinates);
+			// Checking winning or loosing conditions for the game
+			boolean allItemsDropped = isAllItemsDroppped(itemCoordinates);
+			boolean allPlayerFrozen = isAllRobotFrozen(robots);
 
+			// Crewmate and medic robots wins if all items are dropped to correct place
 			if (allItemsDropped) {
+				System.out.println("\n--- GAME OVER ---");
 				System.out.println("Crew wins! All items successfully dropped.");
+				break;
 			}
 
+			// Killer robot wins if all crew and medic robots are frozen
 			if (allPlayerFrozen) {
+				System.out.println("\n--- GAME OVER ---");
 				System.out.println("Killer wins! All crewmates and medics frozen.");
+				break;
 			}
 		}
-
 	}
 
+	/**
+	 * Method that gives the updated record having all information of robots
+	 * 
+	 * @param robots : array of objects of all robots
+	 * @return : returns the record of informations of all robots
+	 */
 	public static GameRecord[] getRecord(GameRobot[] robots) {
 
 		GameRecord[] record = new GameRecord[robots.length];
 
+		// geting the informations from robot array
 		for (int i = 0; i < robots.length; i++) {
-			// street, avenue, energy, speed(double), type, frozen, dodgeChance, catchChance
 			record[i] = new GameRecord(robots[i].getID(), robots[i].getStreet(), robots[i].getAvenue(),
-					robots[i].getEnergy(), robots[i].getSpeed(), robots[i].getName(), robots[i].isRobotFrozen(),
+					robots[i].getEnergy(), robots[i].getRobotSpeed(), robots[i].getName(), robots[i].isRobotFrozen(),
 					robots[i].getDodgeChance(), robots[i].getCatchChance());
 		}
 		return record;
 	}
 
+	/**
+	 * Method to check if all items are dropped by the crewmates
+	 * 
+	 * @param itemCoordinates : Contains the informations of items
+	 * @return : return whether all items are dropped to right place
+	 */
 	public static boolean isAllItemsDroppped(Coordinates[] itemCoordinates) {
 
+		// Checks all items if they are dropped to correct location
 		for (int i = 0; i < itemCoordinates.length; i++) {
 			if (itemCoordinates[i].getIsFinalPosition() == false) {
 				return false;
@@ -130,8 +127,15 @@ public class ControlCentre {
 		return true;
 	}
 
+	/**
+	 * Method to check if all crew and medic robots are frozen
+	 * 
+	 * @param robots: array of objects of all robots
+	 * @return : returns if the all crew and medic robots have frozen or not
+	 */
 	public static boolean isAllRobotFrozen(GameRobot[] robots) {
 
+		// checks for all robots except for killer robot
 		for (int i = 0; i < robots.length; i++) {
 			if (!robots[i].getName().equalsIgnoreCase("killer")) {
 				if (robots[i].isRobotFrozen() == false) {
@@ -141,5 +145,4 @@ public class ControlCentre {
 		}
 		return true;
 	}
-
 }

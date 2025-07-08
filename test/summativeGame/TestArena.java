@@ -1,16 +1,13 @@
 package summativeGame;
 
-import becker.robots.*;
 import java.util.Random;
 
-/**
- * Makes walls for the arena where the robots will play the game and scatters
- * the items they have to pick up
- * 
- * @author heerm, aditya, samarvir
- * @version June 13, 2025
- */
-public class Arena {
+import becker.robots.City;
+import becker.robots.Direction;
+import becker.robots.Thing;
+import becker.robots.Wall;
+
+public class TestArena extends Arena {
 	// Declaring and initializing final variables for the dimensions of
 	// the cafeteria
 	public static final int HEIGHT = 13;
@@ -28,7 +25,11 @@ public class Arena {
 	 * Constructor method that builds the arena and sets up the walls, and calls the
 	 * scatterThings() method
 	 */
-	public Arena() {
+	public TestArena() {
+		scatterThings(playArea);
+	}
+
+	public City buildCity() {
 		playArea = new City(HEIGHT, WIDTH);
 		playArea.showThingCounts(true);
 
@@ -48,38 +49,22 @@ public class Arena {
 		for (int r = 0; r < HEIGHT; r++) {
 			new Wall(playArea, r, WIDTH - 1, Direction.EAST);
 		}
-
-		scatterThings(playArea);
+		
+		return playArea;
 	}
 
-	public Arena(Coordinates[] itemCoordinates) {
+	public TestArena(Coordinates[] itemCoordinates) {
+		super(itemCoordinates);
 		
 	}
-	
-	/**
-	 * Scatters the items at random coordinates within a given city and adds the
-	 * items' coordinates to the itemCoordinates array
-	 * 
-	 * @param city - the city wihtin which the items are scattered
-	 */
-	protected void scatterThings(City city) {
-		Random rand = new Random();
 
-		// Scattering the number of things as specified above, inside the created
-		// playArea
-		for (int i = 0; i < numThings; i++) {
-			int r, c;
-			boolean invalidPosition;
-			do {
-				r = rand.nextInt(HEIGHT);
-				c = rand.nextInt(WIDTH);
-				invalidPosition = (r == 0 || r == HEIGHT - 1 || c == 0 || c == WIDTH - 1);
-			} while (invalidPosition);
-			placeThing(r, c);
-			itemCoordinates[i] = new Coordinates(r, c);
+	public void scatterThings(Coordinates[] itemCoordinates) {
+		for(int i = 0; i < itemCoordinates.length; i++) {
+			Coordinates coord = itemCoordinates[i];
+			this.placeThing(coord.getStreet(), coord.getAvenue());
 		}
 	}
-
+	
 	/**
 	 * Places things at the given coordinates
 	 * 
@@ -88,7 +73,7 @@ public class Arena {
 	 * @param c    - the column/width
 	 */
 	public void placeThing(int r, int c) {
-		new Thing(this.getCity(),r, c);
+		new Thing(this.getCity(), r, c);
 	}
 
 	/**

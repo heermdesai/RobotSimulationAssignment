@@ -6,6 +6,7 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="test"/>
 	<classpathentry kind="lib" path="C:/Users/heerm/Development/eclipse-workspace/ICS4U/becker.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
